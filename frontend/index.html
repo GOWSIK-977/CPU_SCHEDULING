@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>⚡ CPU Scheduling · Neon Dashboard</title>
+  <!-- Fonts & Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0c0f15;
+      color: #eef2f6;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 1440px;
+      width: 100%;
+      padding: 1.2rem 1.5rem;
+      position: relative;
+      background: radial-gradient(circle at 20% 30%, rgba(0, 180, 255, 0.06), transparent 60%),
+                  radial-gradient(circle at 80% 70%, rgba(180, 0, 255, 0.06), transparent 60%);
+    }
+    .header {
+      backdrop-filter: blur(8px);
+      background: rgba(18, 26, 36, 0.7);
+      border: 1px solid rgba(0, 200, 255, 0.15);
+      border-radius: 32px;
+      padding: 0.9rem 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 180, 255, 0.1);
+      margin-bottom: 2rem;
+    }
+    .header-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-weight: 700;
+      font-size: 1.7rem;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      background: linear-gradient(135deg, #a0e9ff, #6b8cff, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 20px rgba(0, 180, 255, 0.3);
+    }
+    .header-controls { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.4rem;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(4px);
+      color: #d6e3f0;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .btn-primary {
+      background: linear-gradient(145deg, #2b6cff, #1a4fdb);
+      border: 1px solid rgba(100, 180, 255, 0.4);
+      color: white;
+      box-shadow: 0 0 20px rgba(0, 100, 255, 0.25);
+    }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0, 140, 255, 0.5); }
+    .btn-secondary { background: rgba(60, 80, 120, 0.3); border: 1px solid rgba(255,255,255,0.08); }
+    .btn-secondary:hover { background: rgba(80, 110, 180, 0.3); border-color: #6b8cff; }
+    .btn-success {
+      background: linear-gradient(145deg, #00b894, #00a37a);
+      border: 1px solid #00d2a0;
+      color: white;
+      box-shadow: 0 0 20px rgba(0, 200, 150, 0.2);
+    }
+    .btn-success:hover { box-shadow: 0 0 30px #00d2a0aa; transform: scale(1.02); }
+    .btn-danger {
+      background: linear-gradient(145deg, #e74c6f, #c0395a);
+      border: 1px solid #ff6b8a;
+      color: white;
+      box-shadow: 0 0 20px rgba(255, 50, 80, 0.15);
+    }
+    .btn-danger:hover { box-shadow: 0 0 30px #ff6b8a; }
+    
+    .main-content { display: flex; gap: 1.8rem; flex-wrap: wrap; }
+    .sidebar {
+      flex: 0 0 220px;
+      background: rgba(12, 20, 30, 0.6);
+      backdrop-filter: blur(8px);
+      border-radius: 32px;
+      padding: 1.8rem 1rem;
+      border: 1px solid rgba(0, 180, 255, 0.08);
+      height: fit-content;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .nav-menu ul { list-style: none; }
+    .nav-menu li { margin: 0.8rem 0; }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.7rem 1.2rem;
+      border-radius: 40px;
+      color: #b0c8e0;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.2s;
+      border: 1px solid transparent;
+    }
+    .nav-link i { width: 1.4rem; text-align: center; font-size: 1.1rem; }
+    .nav-link:hover {
+      background: rgba(50, 120, 255, 0.08);
+      color: #d6eaff;
+      border-color: rgba(0, 180, 255, 0.15);
+      box-shadow: 0 0 20px rgba(0, 150, 255, 0.05);
+    }
+    .nav-link.active {
+      background: rgba(0, 140, 255, 0.12);
+      color: #a0dcff;
+      border-color: rgba(0, 180, 255, 0.25);
+      box-shadow: 0 0 25px rgba(0, 150, 255, 0.1);
+    }
+    .content { flex: 1; min-width: 280px; }
+    .section { display: none; animation: fadeSlide 0.35s ease; }
+    .section.active { display: block; }
+    @keyframes fadeSlide { 0% { opacity: 0.3; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1.2rem;
+      margin: 1.8rem 0;
+    }
+    .stat-card {
+      background: rgba(20, 30, 44, 0.6);
+      backdrop-filter: blur(4px);
+      border-radius: 28px;
+      padding: 1.4rem 1.2rem;
+      border: 1px solid rgba(0, 180, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transition: 0.25s;
+    }
+    .stat-card:hover {
+      border-color: rgba(0, 200, 255, 0.25);
+      box-shadow: 0 0 30px rgba(0, 150, 255, 0.07);
+      transform: translateY(-2px);
+    }
+    .stat-icon {
+      font-size: 2rem;
+      background: linear-gradient(145deg, #2b6cff30, #6b8cff20);
+      border-radius: 50%;
+      width: 3.2rem;
+      height: 3.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b9cff;
+    }
+    .stat-info h3 {
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #8aaac0;
+    }
+    .stat-value {
+      font-weight: 700;
+      font-size: 1.7rem;
+      background: linear-gradient(135deg, #d6eaff, #a0c8ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .quick-actions {
+      background: rgba(16, 26, 40, 0.5);
+      backdrop-filter: blur(4px);
+      border-radius: 28px;
+      padding: 1.5rem 2rem;
+      border: 1px solid rgba(0,180,255,0.05);
+      margin: 1.8rem 0;
+    }
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.8rem; }
+    
+    .form-control {
+      background: rgba(10, 18, 28, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 40px;
+      padding: 0.7rem 1.2rem;
+      color: #e0edfa;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+      width: 100%;
+      transition: 0.2s;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: #2b6cff;
+      box-shadow: 0 0 20px #2b6cff30;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: #aac0d4;
+      margin-bottom: 0.3rem;
+    }
+    .table-container {
+      overflow-x: auto;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.04);
+      background: rgba(12, 22, 34, 0.4);
+      backdrop-filter: blur(4px);
+      padding: 0.2rem;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      color: #d6e5f0;
+    }
+    .table th {
+      text-align: left;
+      padding: 1rem 1.2rem;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #8aaac0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .table td {
+      padding: 0.9rem 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+    }
+    .table tr:hover td { background: rgba(0, 150, 255, 0.02); }
+    .badge {
+      background: #2b6cff30;
+      border-radius: 40px;
+      padding: 0.2rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid #2b6cff20;
+    }
+    
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.8rem;
+      margin-top: 1.8rem;
+    }
+    .chart-container {
+      background: rgba(12, 22, 34, 0.5);
+      backdrop-filter: blur(4px);
+      border-radius: 28px;
+      padding: 1.2rem 1rem;
+      border: 1px solid rgba(0,180,255,0.05);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .chart-container h3 {
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: #b0cce0;
+      margin-bottom: 1rem;
+    }
+    canvas { max-height: 200px; max-width: 100%; }
+    
+    .chat-container {
+      background: rgba(12, 22, 34, 0.5);
+      backdrop-filter: blur(4px);
+      border-radius: 28px;
+      padding: 1.2rem;
+      border: 1px solid rgba(0,180,255,0.05);
+      max-height: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 280px;
+      padding: 0.4rem 0.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .message { display: flex; flex-direction: column; }
+    .message.system .message-content {
+      background: rgba(0, 180, 255, 0.06);
+      border-left: 3px solid #2b6cff;
+      padding: 0.6rem 1.2rem;
+      border-radius: 20px;
+      align-self: flex-start;
+      max-width: 80%;
+    }
+    .message-time {
+      font-size: 0.7rem;
+      color: #7a96b0;
+      padding: 0.2rem 0.5rem;
+    }
+    .chat-input-group {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.8rem;
+    }
+    .chat-input-group input { flex: 1; }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: #1a2634;
+      border-radius: 32px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      border: 1px solid rgba(0,180,255,0.1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 0.8rem;
+    }
+    .close { font-size: 1.6rem; cursor: pointer; color: #b0c8e0; }
+    
+    .settings-container { display: flex; flex-direction: column; gap: 2rem; }
+    .setting-group {
+      background: rgba(12, 22, 34, 0.4);
+      backdrop-filter: blur(4px);
+      border-radius: 28px;
+      padding: 1.8rem;
+      border: 1px solid rgba(0,180,255,0.04);
+    }
+    
+    @media (max-width: 780px) {
+      .sidebar { flex: 1 1 100%; }
+      .header h1 { font-size: 1.3rem; }
+      .header-content { flex-direction: column; gap: 0.8rem; align-items: stretch; }
+      .header-controls { justify-content: center; }
+      .stat-card { padding: 1rem; }
+    }
+    
+    ::-webkit-scrollbar { width: 5px; background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2b6cff60; border-radius: 20px; }
+    
+    .loading { opacity: 0.5; pointer-events: none; }
+    .status-badge { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+    .status-ready { background: #2b6cff30; color: #6b9cff; }
+    .status-running { background: #00b89430; color: #00d2a0; }
+    .status-waiting { background: #ff9f4330; color: #ff9f43; }
+    .status-completed { background: #00d2a030; color: #00d2a0; }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      border-radius: 16px;
+      background: rgba(20, 30, 44, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 180, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      color: #eef2f6;
+      z-index: 1000;
+      max-width: 400px;
+      animation: slideUp 0.3s ease;
+    }
+    .toast.success { border-color: #00d2a0; }
+    .toast.error { border-color: #ff6b8a; }
+    .toast.info { border-color: #2b6cff; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-content">
+      <h1><i class="fas fa-microchip"></i> CPU · Scheduling</h1>
+      <div class="header-controls">
+        <button id="theme-toggle" class="btn btn-secondary"><i class="fas fa-moon"></i> Dark</button>
+        <button id="connect-db" class="btn btn-primary"><i class="fas fa-database"></i> Connect DB</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <nav class="nav-menu">
+        <ul>
+          <li><a href="#dashboard" class="nav-link active" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+          <li><a href="#algorithms" class="nav-link" data-section="algorithms"><i class="fas fa-cogs"></i> Algorithms</a></li>
+          <li><a href="#processes" class="nav-link" data-section="processes"><i class="fas fa-tasks"></i> Processes</a></li>
+          <li><a href="#charts" class="nav-link" data-section="charts"><i class="fas fa-chart-bar"></i> Charts</a></li>
+          <li><a href="#chat" class="nav-link" data-section="chat"><i class="fas fa-comments"></i> Chat</a></li>
+          <li><a href="#settings" class="nav-link" data-section="settings"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- CONTENT -->
+    <section class="content">
+
+      <!-- DASHBOARD -->
+      <div id="dashboard" class="section active">
+        <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon"><i class="fas fa-microchip"></i></div><div class="stat-info"><h3>CPU Usage</h3><div class="stat-value" id="cpu-usage">0%</div></div></div>
+          <div class="stat-card"><div class="stat-icon"><i class="fas fa-tasks"></i></div><div class="stat-info"><h3>Active</h3><div class="stat-value" id="active-processes">0</div></div></div>
+          <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-info"><h3>Avg Wait</h3><div class="stat-value" id="avg-wait-time">0ms</div></div></div>
+          <div class="stat-card"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><div class="stat-info"><h3>Throughput</h3><div class="stat-value" id="throughput">0</div></div></div>
+        </div>
+        <div class="quick-actions">
+          <h3>⚡ Quick Actions</h3>
+          <div class="action-buttons">
+            <button id="seed-data" class="btn btn-secondary"><i class="fas fa-database"></i> Seed Data</button>
+            <button id="run-simulation" class="btn btn-success"><i class="fas fa-play"></i> Run Simulation</button>
+            <button id="reset-system" class="btn btn-danger"><i class="fas fa-redo"></i> Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALGORITHMS -->
+      <div id="algorithms" class="section">
+        <h2><i class="fas fa-cogs"></i> Algorithms</h2>
+        <div class="algorithm-selector" style="margin: 1rem 0;">
+          <label>Select Algorithm: </label>
+          <select id="algorithm-select" class="form-control" style="width:auto;display:inline-block;">
+            <option value="fcfs">FCFS</option>
+            <option value="sjf">SJF</option>
+            <option value="priority">Priority</option>
+            <option value="rr">Round Robin</option>
+            <option value="srtf">SRTF</option>
+          </select>
+        </div>
+        <div id="rr-config" style="display:none; margin-bottom:1rem;">
+          <label>Time Quantum: <input type="number" id="time-quantum" value="2" class="form-control" style="width:80px;display:inline-block;"/></label>
+        </div>
+        <div class="algorithm-info" style="background:rgba(0,180,255,0.02); border-radius:24px; padding:1.2rem; border:1px solid rgba(0,180,255,0.05);">
+          <h3>Description</h3>
+          <div id="algorithm-description"><p>Select an algorithm to see details.</p></div>
+        </div>
+      </div>
+
+      <!-- PROCESSES -->
+      <div id="processes" class="section">
+        <h2><i class="fas fa-tasks"></i> Process Management</h2>
+        <div class="process-form" style="background:rgba(12,22,34,0.4); border-radius:28px; padding:1.5rem; margin:1rem 0;">
+          <h3>Add Process</h3>
+          <form id="process-form" class="form" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0.8rem;">
+            <div class="form-group"><label>ID</label><input type="text" id="process-id" class="form-control" placeholder="P1"/></div>
+            <div class="form-group"><label>Arrival</label><input type="number" id="arrival-time" class="form-control" value="0"/></div>
+            <div class="form-group"><label>Burst</label><input type="number" id="burst-time" class="form-control" value="5"/></div>
+            <div class="form-group"><label>Priority</label><input type="number" id="priority" class="form-control" value="5"/></div>
+            <button type="submit" class="btn btn-primary" style="grid-column: span 1;"><i class="fas fa-plus"></i> Add</button>
+          </form>
+        </div>
+        <div class="process-list">
+          <h3>Process Queue <span id="process-count" style="font-size:0.8rem;color:#8aaac0;"></span></h3>
+          <div class="table-container">
+            <table class="table">
+              <thead><tr><th>ID</th><th>Arrival</th><th>Burst</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="process-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div id="charts" class="section">
+        <h2><i class="fas fa-chart-bar"></i> Charts</h2>
+        <div class="charts-grid">
+          <div class="chart-container"><h3>Gantt Chart</h3><canvas id="gantt-chart"></canvas></div>
+          <div class="chart-container"><h3>Waiting Time</h3><canvas id="waiting-time-chart"></canvas></div>
+          <div class="chart-container"><h3>Turnaround</h3><canvas id="turnaround-chart"></canvas></div>
+          <div class="chart-container"><h3>CPU Utilization</h3><canvas id="cpu-utilization-chart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div id="chat" class="section">
+        <h2><i class="fas fa-comments"></i> System Chat</h2>
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="message system"><div class="message-content"><p>👋 Welcome! I'm connected to MongoDB. Ask me about scheduling or check the logs!</p></div><div class="message-time">System</div></div>
+          </div>
+          <div class="chat-input-group">
+            <input type="text" id="chat-input" class="form-control" placeholder="Type a message..."/>
+            <button id="send-message" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="settings" class="section">
+        <h2><i class="fas fa-cog"></i> Settings</h2>
+        <div class="settings-container">
+          <div class="setting-group"><h3>Database</h3><div class="form-group"><label>MongoDB Status</label><div id="db-status" style="padding:0.5rem;background:rgba(0,180,255,0.05);border-radius:12px;">Checking connection...</div></div></div>
+          <div class="setting-group"><h3>Simulation</h3><div class="form-group"><label>Speed <span id="speed-value">5</span></label><input type="range" id="simulation-speed" min="1" max="10" value="5" class="form-control"/></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer style="margin-top:3rem; text-align:center; font-size:0.8rem; color:#5f7a92; border-top:1px solid rgba(255,255,255,0.02); padding-top:1.5rem;">
+    © 2026 CPU Scheduling · Connected to MongoDB Atlas
+  </footer>
+</div>
+
+<!-- Modal -->
+<div id="process-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Process Details</h3><span class="close">&times;</span></div>
+    <div class="modal-body" id="process-details"></div>
+  </div>
+</div>
+
+<script>
+// ============ CONFIGURATION ============
+const API_URL = 'http://localhost:5000/api';
+
+// ============ CHART INSTANCES ============
+let chartGantt, chartWaiting, chartTurnaround, chartCPU;
+
+// ============ UTILITY FUNCTIONS ============
+function showToast(message, type = 'info') {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 5000);
+}
+
+function getStatusClass(status) {
+  const map = {
+    'ready': 'status-ready',
+    'running': 'status-running',
+    'waiting': 'status-waiting',
+    'completed': 'status-completed'
+  };
+  return map[status] || 'status-ready';
+}
+
+// ============ API FUNCTIONS ============
+
+// Health Check
+async function checkHealth() {
+  try {
+    const response = await fetch(`${API_URL}/health`);
+    const data = await response.json();
+    const statusEl = document.getElementById('db-status');
+    if (data.database === 'Connected') {
+      statusEl.innerHTML = '✅ Connected to MongoDB Atlas';
+      statusEl.style.color = '#00d2a0';
+      document.getElementById('connect-db').innerHTML = '<i class="fas fa-check-circle"></i> DB Connected';
+    } else {
+      statusEl.innerHTML = '❌ Database disconnected';
+      statusEl.style.color = '#ff6b8a';
+      document.getElementById('connect-db').innerHTML = '<i class="fas fa-exclamation-circle"></i> DB Offline';
+    }
+    return data;
+  } catch (error) {
+    document.getElementById('db-status').innerHTML = '❌ Cannot connect to server';
+    document.getElementById('db-status').style.color = '#ff6b8a';
+    document.getElementById('connect-db').innerHTML = '<i class="fas fa-exclamation-circle"></i> Server Offline';
+    return null;
+  }
+}
+
+// Load processes
+async function loadProcesses() {
+  try {
+    const response = await fetch(`${API_URL}/processes`);
+    const result = await response.json();
+    if (result.success) {
+      renderProcesses(result.data);
+      document.getElementById('process-count').textContent = `(${result.count} processes)`;
+      return result.data;
+    }
+    return [];
+  } catch (error) {
+    showToast('Error loading processes: ' + error.message, 'error');
+    return [];
+  }
+}
+
+// Add process
+async function addProcess(processData) {
+  try {
+    const response = await fetch(`${API_URL}/processes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(processData)
+    });
+    const result = await response.json();
+    if (result.success) {
+      showToast(`Process ${processData.processId} added successfully!`, 'success');
+      return result.data;
+    } else {
+      showToast(result.error || 'Failed to add process', 'error');
+      return null;
+    }
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+    return null;
+  }
+}
+
+// Delete all processes
+async function deleteAllProcesses() {
+  if (!confirm('⚠️ Delete ALL processes? This cannot be undone!')) return;
+  try {
+    const response = await fetch(`${API_URL}/processes`, { method: 'DELETE' });
+    const result = await response.json();
+    if (result.success) {
+      showToast(result.message, 'success');
+      await loadProcesses();
+    }
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+// Seed sample data
+async function seedData() {
+  try {
+    const response = await fetch(`${API_URL}/seed`, { method: 'POST' });
+    const result = await response.json();
+    if (result.success) {
+      showToast(result.message, 'success');
+      await loadProcesses();
+    }
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+// Run simulation
+async function runSimulation() {
+  const algorithm = document.getElementById('algorithm-select').value;
+  let endpoint = '';
+  let body = null;
+  
+  switch(algorithm) {
+    case 'fcfs': endpoint = '/simulate/fcfs'; break;
+    case 'sjf': endpoint = '/simulate/sjf'; break;
+    case 'rr': 
+      endpoint = '/simulate/rr';
+      const quantum = parseInt(document.getElementById('time-quantum').value) || 2;
+      body = { timeQuantum: quantum };
+      break;
+    case 'priority':
+    case 'srtf':
+      showToast(`${algorithm.toUpperCase()} algorithm coming soon!`, 'info');
+      return;
+    default:
+      showToast('Please select an algorithm', 'error');
+      return;
+  }
+  
+  try {
+    const options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (body) options.body = JSON.stringify(body);
+    
+    const response = await fetch(`${API_URL}${endpoint}`, options);
+    const result = await response.json();
+    
+    if (result.success) {
+      showToast(`✅ ${algorithm.toUpperCase()} simulation completed!`, 'success');
+      updateDashboard(result.data);
+      updateCharts(result.data);
+      
+      // Add to chat
+      addChatMessage(`✅ Simulation complete! Algorithm: ${result.data.algorithm.toUpperCase()}\nAvg Wait: ${result.data.results.avgWaitTime}ms | CPU: ${result.data.results.cpuUtilization}%`);
+    } else {
+      showToast(result.error || 'Simulation failed', 'error');
+    }
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+// Update dashboard
+function updateDashboard(simulation) {
+  if (!simulation || !simulation.results) return;
+  const r = simulation.results;
+  document.getElementById('cpu-usage').textContent = `${r.cpuUtilization}%`;
+  document.getElementById('avg-wait-time').textContent = `${r.avgWaitTime}ms`;
+  document.getElementById('throughput').textContent = r.throughput || '0';
+  document.getElementById('active-processes').textContent = r.totalProcesses || '0';
+}
+
+// Update charts
+function updateCharts(simulation) {
+  if (!simulation || !simulation.ganttChart) return;
+  
+  const ganttData = simulation.ganttChart;
+  const labels = ganttData.map(g => g.processId);
+  const starts = ganttData.map(g => g.start);
+  const ends = ganttData.map(g => g.end);
+  const colors = ganttData.map(g => g.color || '#2b6cff');
+  
+  // Update Gantt chart
+  if (chartGantt) {
+    chartGantt.destroy();
+  }
+  const ctx1 = document.getElementById('gantt-chart').getContext('2d');
+  chartGantt = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Execution Time',
+        data: ends.map((e, i) => e - starts[i]),
+        backgroundColor: colors,
+        borderColor: colors.map(c => c + 'cc'),
+        borderWidth: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const idx = context.dataIndex;
+              return `${labels[idx]}: ${starts[idx]} → ${ends[idx]}`;
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  // Update waiting time chart
+  if (chartWaiting) chartWaiting.destroy();
+  const ctx2 = document.getElementById('waiting-time-chart').getContext('2d');
+  chartWaiting = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Waiting Time',
+        data: ganttData.map(g => Math.round(g.start)),
+        backgroundColor: 'rgba(255, 159, 67, 0.6)',
+        borderColor: '#ff9f43',
+        borderWidth: 2
+      }]
+    },
+    options: { responsive: true }
+  });
+  
+  // Update turnaround chart
+  if (chartTurnaround) chartTurnaround.destroy();
+  const ctx3 = document.getElementById('turnaround-chart').getContext('2d');
+  chartTurnaround = new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Turnaround Time',
+        data: ganttData.map(g => Math.round(g.end - g.start + g.start)),
+        backgroundColor: 'rgba(0, 210, 160, 0.6)',
+        borderColor: '#00d2a0',
+        borderWidth: 2
+      }]
+    },
+    options: { responsive: true }
+  });
+  
+  // Update CPU utilization
+  if (chartCPU) chartCPU.destroy();
+  const ctx4 = document.getElementById('cpu-utilization-chart').getContext('2d');
+  chartCPU = new Chart(ctx4, {
+    type: 'doughnut',
+    data: {
+      labels: ['CPU Used', 'Idle'],
+      datasets: [{
+        data: [
+          simulation.results.cpuUtilization || 0,
+          100 - (simulation.results.cpuUtilization || 0)
+        ],
+        backgroundColor: ['#2b6cff', '#2a3a50'],
+        borderColor: ['#2b6cff', '#2a3a50'],
+        borderWidth: 2
+      }]
+    },
+    options: { responsive: true }
+  });
+}
+
+// Render processes table
+function renderProcesses(processes) {
+  const tbody = document.getElementById('process-tbody');
+  if (!processes || processes.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#8aaac0;">No processes found. Add some or seed data!</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = processes.map(p => `
+    <tr>
+      <td><span class="badge">${p.processId}</span></td>
+      <td>${p.arrivalTime}</td>
+      <td>${p.burstTime}</td>
+      <td>${p.priority}</td>
+      <td><span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></td>
+      <td>
+        <button class="btn btn-secondary" style="padding:0.2rem 0.8rem;" onclick="viewProcess('${p.processId}')">
+          <i class="fas fa-eye"></i>
+        </button>
+        <button class="btn btn-danger" style="padding:0.2rem 0.8rem;" onclick="deleteProcess('${p.processId}')">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// View process details
+async function viewProcess(processId) {
+  try {
+    const response = await fetch(`${API_URL}/processes/${processId}`);
+    const result = await response.json();
+    if (result.success) {
+      const p = result.data;
+      document.getElementById('process-details').innerHTML = `
+        <p><strong>ID:</strong> ${p.processId}</p>
+        <p><strong>Arrival:</strong> ${p.arrivalTime}</p>
+        <p><strong>Burst:</strong> ${p.burstTime}</p>
+        <p><strong>Priority:</strong> ${p.priority}</p>
+        <p><strong>Status:</strong> <span class="status-badge ${getStatusClass(p.status)}">${p.status}</span></p>
+        <p><strong>Wait Time:</strong> ${p.waitTime || 0}ms</p>
+        <p><strong>Turnaround:</strong> ${p.turnaroundTime || 0}ms</p>
+        <p><strong>Created:</strong> ${new Date(p.createdAt).toLocaleString()}</p>
+      `;
+      document.getElementById('process-modal').style.display = 'flex';
+    }
+  } catch (error) {
+    showToast('Error loading process: ' + error.message, 'error');
+  }
+}
+
+// Delete single process
+async function deleteProcess(processId) {
+  if (!confirm(`Delete process ${processId}?`)) return;
+  try {
+    const response = await fetch(`${API_URL}/processes/${processId}`, { method: 'DELETE' });
+    const result = await response.json();
+    if (result.success) {
+      showToast(result.message, 'success');
+      await loadProcesses();
+    }
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+// Add chat message
+function addChatMessage(message) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'message system';
+  const lines = message.split('\n');
+  div.innerHTML = `
+    <div class="message-content">
+      ${lines.map(line => `<p>${line}</p>`).join('')}
+    </div>
+    <div class="message-time">System</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ============ EVENT LISTENERS ============
+
+// Navigation
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = link.getAttribute('href').substring(1);
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(target)?.classList.add('active');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+  });
+});
+
+// Process form
+document.getElementById('process-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const processData = {
+    processId: document.getElementById('process-id').value || `P${Date.now()}`,
+    arrivalTime: parseInt(document.getElementById('arrival-time').value) || 0,
+    burstTime: parseInt(document.getElementById('burst-time').value) || 5,
+    priority: parseInt(document.getElementById('priority').value) || 5
+  };
+  const result = await addProcess(processData);
+  if (result) {
+    await loadProcesses();
+    document.getElementById('process-form').reset();
+  }
+});
+
+// Algorithm select
+document.getElementById('algorithm-select').addEventListener('change', function() {
+  document.getElementById('rr-config').style.display = this.value === 'rr' ? 'block' : 'none';
+  const desc = document.getElementById('algorithm-description');
+  const map = {
+    fcfs: 'First Come First Serve – Non-preemptive. Processes are executed in order of arrival.',
+    sjf: 'Shortest Job First – Non-preemptive. The process with the smallest burst time runs first.',
+    priority: 'Priority Scheduling – Can be preemptive or non-preemptive. Higher priority processes run first.',
+    rr: 'Round Robin – Preemptive. Each process gets a fixed time quantum. Good for time-sharing systems.',
+    srtf: 'Shortest Remaining Time First – Preemptive version of SJF. The process with the shortest remaining time runs.'
+  };
+  desc.innerHTML = `<p>${map[this.value] || 'Select an algorithm'}</p>`;
+});
+
+// Theme toggle
+document.getElementById('theme-toggle').addEventListener('click', function() {
+  document.body.style.background = document.body.style.background === '#0c0f15' ? '#121a24' : '#0c0f15';
+  this.innerHTML = document.body.style.background === '#121a24' ? '<i class="fas fa-sun"></i> Light' : '<i class="fas fa-moon"></i> Dark';
+});
+
+// Connect DB
+document.getElementById('connect-db').addEventListener('click', async function() {
+  this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+  const health = await checkHealth();
+  if (health && health.database === 'Connected') {
+    showToast('✅ Connected to MongoDB Atlas successfully!', 'success');
+  } else {
+    showToast('❌ Failed to connect to database', 'error');
+  }
+  this.innerHTML = '<i class="fas fa-database"></i> Connect DB';
+});
+
+// Seed data
+document.getElementById('seed-data').addEventListener('click', seedData);
+
+// Run simulation
+document.getElementById('run-simulation').addEventListener('click', runSimulation);
+
+// Reset system
+document.getElementById('reset-system').addEventListener('click', deleteAllProcesses);
+
+// Chat
+document.getElementById('send-message').addEventListener('click', () => {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'message system';
+  div.innerHTML = `<div class="message-content"><p>${msg}</p></div><div class="message-time">You</div>`;
+  container.appendChild(div);
+  input.value = '';
+  container.scrollTop = container.scrollHeight;
+  
+  // Auto-reply
+  setTimeout(() => {
+    const replies = [
+      '🤖 I\'m connected to MongoDB! Try running a simulation.',
+      '📊 Check the Charts section for visualizations.',
+      '💡 You can add processes in the Processes tab.',
+      '⚡ Click "Run Simulation" to see scheduling algorithms in action.'
+    ];
+    const reply = replies[Math.floor(Math.random() * replies.length)];
+    addChatMessage(reply);
+  }, 500);
+});
+
+// Enter key for chat
+document.getElementById('chat-input').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('send-message').click();
+});
+
+// Modal close
+document.querySelector('.close').addEventListener('click', () => {
+  document.getElementById('process-modal').style.display = 'none';
+});
+document.getElementById('process-modal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('process-modal').style.display = 'none';
+});
+
+// Speed display
+document.getElementById('simulation-speed').addEventListener('input', function() {
+  document.getElementById('speed-value').textContent = this.value;
+});
+
+// ============ INITIALIZATION ============
+(async function init() {
+  console.log('🚀 CPU Scheduling Dashboard starting...');
+  
+  // Check database connection
+  await checkHealth();
+  
+  // Load processes
+  await loadProcesses();
+  
+  // Initialize charts with default data
+  const ctx1 = document.getElementById('gantt-chart').getContext('2d');
+  chartGantt = new Chart(ctx1, {
+    type: 'bar',
+    data: { labels: ['No Data'], datasets: [{ label: 'Processes', data: [0], backgroundColor: '#2a3a50' }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+  
+  const ctx2 = document.getElementById('waiting-time-chart').getContext('2d');
+  chartWaiting = new Chart(ctx2, {
+    type: 'bar',
+    data: { labels: ['No Data'], datasets: [{ label: 'Wait Time', data: [0], backgroundColor: '#2a3a50' }] },
+    options: { responsive: true }
+  });
+  
+  const ctx3 = document.getElementById('turnaround-chart').getContext('2d');
+  chartTurnaround = new Chart(ctx3, {
+    type: 'bar',
+    data: { labels: ['No Data'], datasets: [{ label: 'Turnaround', data: [0], backgroundColor: '#2a3a50' }] },
+    options: { responsive: true }
+  });
+  
+  const ctx4 = document.getElementById('cpu-utilization-chart').getContext('2d');
+  chartCPU = new Chart(ctx4, {
+    type: 'doughnut',
+    data: { labels: ['Idle'], datasets: [{ data: [100], backgroundColor: ['#2a3a50'] }] },
+    options: { responsive: true }
+  });
+  
+  addChatMessage('✅ System initialized! Connected to MongoDB Atlas.');
+  addChatMessage('💡 Try adding processes or click "Seed Data" to get started!');
+  
+  console.log('✨ Dashboard ready!');
+})();
+</script>
+</body>
+</html>
