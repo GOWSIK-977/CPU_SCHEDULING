@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "index.html",
+      "src": "frontend/**",
       "use": "@vercel/static"
     }
   ],
@@ -16,8 +16,16 @@
       "dest": "backend/server.js"
     },
     {
+      "src": "/script.js",
+      "dest": "frontend/script.js"
+    },
+    {
+      "src": "/styles.css",
+      "dest": "frontend/styles.css"
+    },
+    {
       "src": "/(.*)",
-      "dest": "index.html"
+      "dest": "frontend/index.html"
     }
   ]
 }
