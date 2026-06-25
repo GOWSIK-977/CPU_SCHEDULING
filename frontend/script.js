@@ -1,5 +1,10 @@
 // API Base URL
-const API_URL = 'http://localhost:5000/api';
+// Auto-detect API URL based on environment
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000/api'
+  : '/api';  // Use relative path on Vercel
+
+console.log('📡 API URL:', API_URL);
 
 // Fetch processes from database
 async function loadProcesses() {

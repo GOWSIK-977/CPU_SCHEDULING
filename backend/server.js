@@ -932,31 +932,38 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================
-// ============ START SERVER ============
+// ============ EXPORT FOR VERCEL ============
 // ============================================
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 Database: ${process.env.DB_NAME || 'CPU_SCHEDULING'}`);
-  console.log(`\n📌 Available Endpoints:`);
-  console.log(`   GET  /api/health           - Health check`);
-  console.log(`   GET  /api/db-status        - Database status`);
-  console.log(`   GET  /api/processes        - Get all processes`);
-  console.log(`   POST /api/processes        - Create process`);
-  console.log(`   PUT  /api/processes/:id    - Update process`);
-  console.log(`   DELETE /api/processes/:id  - Delete process`);
-  console.log(`   DELETE /api/processes      - Delete all processes`);
-  console.log(`   POST /api/simulate/fcfs    - Run FCFS simulation`);
-  console.log(`   POST /api/simulate/rr      - Run Round Robin simulation`);
-  console.log(`   POST /api/simulate/sjf     - Run SJF simulation`);
-  console.log(`   POST /api/seed             - Seed sample data (POST)`);
-  console.log(`   GET  /api/seed             - Seed sample data (GET)`);
-  console.log(`   POST /api/users/register   - Register user`);
-  console.log(`   POST /api/users/login      - Login user`);
-  console.log(`   GET  /api/simulations      - Get all simulations`);
-  console.log(`   GET  /api/metrics/:algo    - Get algorithm metrics`);
-  console.log(`\n✨ Ready to accept requests!\n`);
-});
+// Export the app for Vercel
+module.exports = app;
+
+// Only listen locally when not on Vercel
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📊 Database: ${process.env.DB_NAME || 'CPU_SCHEDULING'}`);
+    console.log(`\n📌 Available Endpoints:`);
+    console.log(`   GET  /api/health           - Health check`);
+    console.log(`   GET  /api/db-status        - Database status`);
+    console.log(`   GET  /api/processes        - Get all processes`);
+    console.log(`   POST /api/processes        - Create process`);
+    console.log(`   PUT  /api/processes/:id    - Update process`);
+    console.log(`   DELETE /api/processes/:id  - Delete process`);
+    console.log(`   DELETE /api/processes      - Delete all processes`);
+    console.log(`   POST /api/simulate/fcfs    - Run FCFS simulation`);
+    console.log(`   POST /api/simulate/rr      - Run Round Robin simulation`);
+    console.log(`   POST /api/simulate/sjf     - Run SJF simulation`);
+    console.log(`   POST /api/seed             - Seed sample data (POST)`);
+    console.log(`   GET  /api/seed             - Seed sample data (GET)`);
+    console.log(`   POST /api/users/register   - Register user`);
+    console.log(`   POST /api/users/login      - Login user`);
+    console.log(`   GET  /api/simulations      - Get all simulations`);
+    console.log(`   GET  /api/metrics/:algo    - Get algorithm metrics`);
+    console.log(`\n✨ Ready to accept requests!\n`);
+  });
+}
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Rejection:', err);
@@ -969,5 +976,3 @@ process.on('SIGTERM', () => {
     process.exit(0);
   });
 });
-
-module.exports = app;
